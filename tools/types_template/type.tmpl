@@ -1,0 +1,55 @@
+package types
+
+import (
+	"github.com/azrod/go-prometheus-metrics-builder/pkg/registry"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+type (
+	{{ .MetricType }} struct {
+		Metric
+		prometheus.{{ .MetricType }}
+	}
+
+	{{ toLower .MetricType }}Collector struct {
+		{{ .MetricType }}
+	}
+)
+
+var _ Initializable = &{{ .MetricType }}{}
+
+// Init initializes (or re-initializes) the {{ .MetricType }} metric
+// The metrics is automatically initialized by the Register function
+func (c *{{ .MetricType }}) Init(mb *Metric) any {
+	c.Metric = *mb
+    {{- if eq .MetricType "Histogram" }}
+	c.{{ .MetricType }} = promauto.With(registry.PRegistry).New{{ .MetricType }}(prometheus.{{ .MetricType }}Opts(c.autoBuildHistogramOpts()))
+    {{- else if eq .MetricType "Summary" }}
+    c.{{ .MetricType }} = promauto.With(registry.PRegistry).New{{ .MetricType }}(prometheus.{{ .MetricType }}Opts(c.autoBuildSummaryOpts()))
+    {{- else }}
+	c.{{ .MetricType }} = promauto.With(registry.PRegistry).New{{ .MetricType }}(prometheus.{{ .MetricType }}Opts(c.autoBuildOpts()))
+    {{- end }}
+	return c
+}
+
+// Collector returns the prometheus collector
+func (c *{{ .MetricType }}) Collector() Collector {
+	return &{{ toLower .MetricType }}Collector{
+        {{ .MetricType }}: *c,
+    }
+}
+
+// GetType returns the metric type
+func (c *{{ .MetricType }}) GetType() MetricType {
+	return Type{{ .MetricType }}
+}
+
+// Run runs the collector.
+func (c *{{ toLower .MetricType }}Collector) SetValue(value float64, _ ...map[string]string) {
+    {{- if or (eq .MetricType "Histogram") (eq .MetricType "Summary") }}
+    c.{{ .MetricType }}.Observe(value)
+    {{- else }}
+	c.{{ .MetricType }}.Add(value)
+    {{ end }}
+}
