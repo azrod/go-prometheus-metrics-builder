@@ -32,6 +32,7 @@ import (
   "context"
 
   pmbuilder "github.com/azrod/go-prometheus-metrics-builder"
+  "github.com/azrod/go-prometheus-metrics-builder/types"
 )
 
 type demo struct {
