@@ -73,6 +73,7 @@ func (mb Metric) autoBuildHistogramOpts() prometheus.HistogramOpts {
 		Subsystem: mb.Subsystem,
 		Name:      mb.Name,
 		Help:      mb.Help,
+		Buckets:   []float64{0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.5, 1, 2, 5, 10},
 	}
 }
 

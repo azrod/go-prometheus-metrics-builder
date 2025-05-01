@@ -108,7 +108,7 @@ type demo struct {
 }
 ```
 
-You can then define the metrics you want to create as fields in your struct. The type of the field should be a pointer to one of the metric types provided by the library, such as `Counter`, `Gauge`, `Summary` or `Histogram`.
+You can then define the metrics you want to create as fields in your struct. The type of the field should be a pointer to one of the metric types provided by the library, such as `Counter`, `CounterVec`, `Gauge`, `GaugeVec`, `Summary`, `SummaryVec`, `Histogram` or `HistogramVec`.
 
 ```go
 type demo struct {
@@ -142,9 +142,9 @@ pmbuilder.New(metrics)
 
 A following golang tags are available to customize the metrics:
 
-- `name`: The name of the metric. If not provided, the name of the field will be used.
+- `name`: The name of the metric. If not provided, the name of the field will be used. A special tag `_` is available to ignore the name of the field in the metric name.
 - `help`: The help text for the metric. **Required.**
-- `labels`: A comma-separated list of labels for the metric. The labels will be added to the metric as tags.
+- `labels`: A comma-separated list of labels for the metric. The labels will be added to the metric as tags. (Only available for `CounterVec`, `GaugeVec`, `SummaryVec` and `HistogramVec` types.)
 - `namespace`: The namespace for the metric. Used to group metrics together.
 - `subsystem`: The subsystem for the metric. Used to further categorize metrics within a namespace.
 
@@ -171,7 +171,46 @@ Name generated : `myapp_api_database_get_counter` and `myapp_api_database_set_co
 
 ### Labels
 
-Not yet implemented.
+You can add labels to the metrics by using the `labels` tag. The labels will be added to the metric as tags. This is only available for `CounterVec`, `GaugeVec`, `SummaryVec` and `HistogramVec` types.
+
+```go
+type demo struct {
+  pmbuilder.InstanceInterface
+  API struct {
+    DB struct {
+      Get *types.CounterVec `help:"Database get counter" labels:"server"`
+      Set *types.CounterVec `help:"Database set counter" labels:"server"`
+    } `name:"database"`
+    [...]
+  }
+}
+```
+
+It is possible to use the `labels` tag on the `DB` struct to set the labels for all metrics in the struct. This is useful when you want to use the same labels for all metrics in the struct.
+
+```go
+type demo struct {
+  pmbuilder.InstanceInterface
+  API struct {
+    DB struct {
+      Get *types.CounterVec `help:"Database get counter"`
+      Set *types.CounterVec `help:"Database set counter"`
+    } `name:"database" labels:"server"`
+    [...]
+  }
+}
+```
+
+Example of the generated metrics:
+
+```
+# HELP myapp_api_database_get Database get counter
+# TYPE myapp_api_database_get counter
+myapp_api_database_get{server="database1"} 1
+# HELP myapp_api_database_set Database set counter
+# TYPE myapp_api_database_set counter
+myapp_api_database_set{server="database1"} 1
+```
 
 ## License
 

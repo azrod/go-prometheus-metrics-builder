@@ -51,5 +51,11 @@ func (c *{{ toLower .MetricType }}Collector) SetValue(value float64, _ ...map[st
     c.{{ .MetricType }}.Observe(value)
     {{- else }}
 	c.{{ .MetricType }}.Add(value)
-    {{ end }}
+    {{- end }}
 }
+
+{{ if eq .MetricType "Histogram" -}}
+func (c {{ .MetricType }}) NewTimer() *prometheus.Timer {
+	return prometheus.NewTimer(c.Histogram)
+}
+{{ end -}}

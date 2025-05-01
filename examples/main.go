@@ -5,6 +5,7 @@ import (
 	"time"
 
 	pmbuilder "github.com/azrod/go-prometheus-metrics-builder"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 func main() {
@@ -18,7 +19,8 @@ func main() {
 
 	go func() {
 		for {
-			metrics.API.Redis.Get.Inc()
+			metrics.API.Redis.Get.WithLabelValues("redis1", "v1.0").Inc()
+			metrics.API.Redis.Set.With(prometheus.Labels{"server": "redis1", "version": "v1.0"}).Inc()
 			time.Sleep(1 * time.Second)
 		}
 	}()

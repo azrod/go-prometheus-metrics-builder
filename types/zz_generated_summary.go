@@ -43,3 +43,4 @@ func (c *Summary) GetType() MetricType {
 func (c *summaryCollector) SetValue(value float64, _ ...map[string]string) {
     c.Summary.Observe(value)
 }
+

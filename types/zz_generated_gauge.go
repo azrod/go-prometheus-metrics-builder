@@ -42,5 +42,5 @@ func (c *Gauge) GetType() MetricType {
 // Run runs the collector.
 func (c *gaugeCollector) SetValue(value float64, _ ...map[string]string) {
 	c.Gauge.Add(value)
-    
 }
+

@@ -42,5 +42,5 @@ func (c *Counter) GetType() MetricType {
 // Run runs the collector.
 func (c *counterCollector) SetValue(value float64, _ ...map[string]string) {
 	c.Counter.Add(value)
-    
 }
+

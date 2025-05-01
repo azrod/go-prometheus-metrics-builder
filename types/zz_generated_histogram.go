@@ -43,3 +43,7 @@ func (c *Histogram) GetType() MetricType {
 func (c *histogramCollector) SetValue(value float64, _ ...map[string]string) {
     c.Histogram.Observe(value)
 }
+
+func (c Histogram) NewTimer() *prometheus.Timer {
+	return prometheus.NewTimer(c.Histogram)
+}

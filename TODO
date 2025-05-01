@@ -1,3 +1,4 @@
 # TODO
 
-* [] Add a special case for the tag `name` and the value `_` to ignore the prefix in the metric name.
+* [x] Add a special case for the tag `name` and the value `_` to ignore the prefix in the metric name.
+* [] Add validation for the metric `name` and `labels` to ensure they are respect the naming conventions. (<https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels>)

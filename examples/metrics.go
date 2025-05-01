@@ -13,8 +13,8 @@ type demo struct {
 			Set *types.Counter `help:"Demo counter"`
 		} `name:"database"`
 		Redis struct {
-			Get *types.Counter `help:"Demo counter"`
-			Set *types.Counter `help:"Demo counter"`
-		}
+			Get *types.CounterVec `help:"Demo counter"`
+			Set *types.CounterVec `help:"Demo counter"`
+		} `name:"redis" labels:"server,version"`
 	}
 }

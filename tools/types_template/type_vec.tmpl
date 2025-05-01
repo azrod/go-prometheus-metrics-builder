@@ -1,0 +1,76 @@
+package types
+
+import (
+	"github.com/azrod/go-prometheus-metrics-builder/pkg/registry"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+type (
+	{{ .MetricType }} struct {
+		Metric
+		{{ if .IsVec}}*{{end}}prometheus.{{ .MetricType }}
+	}
+
+	{{ toLower .MetricType }}Collector struct {
+		{{ .MetricType }}
+	}
+)
+
+var _ Initializable = &{{ .MetricType }}{}
+
+// Init initializes (or re-initializes) the {{ .MetricType }} metric
+// The metrics is automatically initialized by the Register function
+func (c *{{ .MetricType }}) Init(mb *Metric) any {
+	c.Metric = *mb
+    {{- if eq .MetricWithoutVec "Histogram" }}
+	c.{{ .MetricType }} = promauto.With(registry.PRegistry).New{{ .MetricType }}(prometheus.{{ .MetricWithoutVec }}Opts(c.autoBuildHistogramOpts()){{ if .IsVec }}, mb.Labels{{ end }})
+    {{- else if eq .MetricWithoutVec "Summary" }}
+    c.{{ .MetricType }} = promauto.With(registry.PRegistry).New{{ .MetricType }}(prometheus.{{ .MetricWithoutVec }}Opts(c.autoBuildSummaryOpts()){{ if .IsVec }}, mb.Labels{{ end }})
+    {{- else }}
+	c.{{ .MetricType }} = promauto.With(registry.PRegistry).New{{ .MetricType }}(prometheus.{{ .MetricWithoutVec }}Opts(c.autoBuildOpts()){{ if .IsVec }}, mb.Labels{{ end }})
+    {{- end }}
+	return c
+}
+
+// Collector returns the prometheus collector
+func (c *{{ .MetricType }}) Collector() Collector {
+	return &{{ toLower .MetricType }}Collector{
+        {{ .MetricType }}: *c,
+    }
+}
+
+// GetType returns the metric type
+func (c *{{ .MetricType }}) GetType() MetricType {
+	return Type{{ .MetricType }}
+}
+
+// Run runs the collector.
+func (c *{{ toLower .MetricType }}Collector) SetValue(value float64, labels ...map[string]string) {
+
+	l := prometheus.Labels{}
+	bLabels := map[string]string{}
+	for _, label := range labels {
+		for k, v := range label {
+			bLabels[k] = v
+		}
+	}
+
+	for _, label := range c.Labels {
+		if v, ok := bLabels[label]; ok {
+			l[label] = v
+		}
+	}
+
+    {{- if or (eq .MetricWithoutVec "Histogram") (eq .MetricWithoutVec "Summary") }}
+    c.{{ .MetricType }}.With(l).Observe(value)
+    {{- else }}
+	c.{{ .MetricType }}.With(l).Add(value)
+    {{- end }}
+}
+
+{{ if eq .MetricType "Histogram" -}}
+func (c {{ .MetricType }}) NewTimer() *prometheus.Timer {
+	return prometheus.NewTimer(c.Histogram)
+}
+{{ end -}}

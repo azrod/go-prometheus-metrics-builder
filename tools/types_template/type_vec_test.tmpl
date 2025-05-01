@@ -1,0 +1,69 @@
+package types
+
+import (
+	"testing"
+
+	"github.com/azrod/go-prometheus-metrics-builder/pkg/registry"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/stretchr/testify/assert"
+)
+
+func Test{{ .MetricType }}_Init(t *testing.T) {
+	mb := &Metric{
+		Name: "test_{{  toLower .MetricType }}",
+		Help: "This is a test {{  toLower .MetricType }}",
+	}
+	{{  toLower .MetricType }} := &{{ .MetricType }}{}
+	result := {{  toLower .MetricType }}.Init(mb)
+
+	assert.NotNil(t, result)
+	assert.Equal(t, mb.Name, {{  toLower .MetricType }}.GetName())
+	assert.Equal(t, mb.Help, {{  toLower .MetricType }}.GetHelp())
+	assert.Equal(t, mb.Namespace, {{  toLower .MetricType }}.GetNamespace())
+	assert.Equal(t, mb.Subsystem, {{  toLower .MetricType }}.GetSubsystem())
+	assert.Equal(t, mb.Labels, {{  toLower .MetricType }}.GetLabels())
+	assert.IsType(t, &{{ .MetricType }}{}, result)
+}
+
+func Test{{ .MetricType }}_GetType(t *testing.T) {
+	cv := &{{ .MetricType }}{}
+	assert.Equal(t, Type{{ .MetricType }}, cv.GetType(), "Expected metric type to be Type{{ .MetricType }}")
+}
+
+func Test{{ .MetricType }}Collector_SetValue(t *testing.T) {
+	registry.PRegistry = prometheus.NewRegistry()
+	{{  toLower .MetricType }} := &{{ .MetricType }}{}
+	mb := &Metric{
+		Name: "test_{{  toLower .MetricType }}",
+		Help: "This is a test {{  toLower .MetricType }}",
+        Labels: []string{"label1", "label2"},
+	}
+	{{  toLower .MetricType }}.Init(mb)
+
+	labels := map[string]string{
+		"label1": "value1",
+		"label2": "value2",
+	}
+
+	collector := {{  toLower .MetricType }}.Collector().(*{{  toLower .MetricType }}Collector)
+	collector.SetValue(1, labels)
+
+	metricFamilies, _ := registry.PRegistry.Gather()
+    {{ if or (eq .MetricType "CounterVec") (eq .MetricType "Counter") }} 
+	assert.Equal(t, 1.0, *metricFamilies[0].Metric[0].Counter.Value)
+    {{ else if or (eq .MetricType "GaugeVec") (eq .MetricType "Gauge") }}
+	assert.Equal(t, 1.0, *metricFamilies[0].Metric[0].Gauge.Value)
+    {{ else if or (eq .MetricType "Histogram") (eq .MetricType "HistogramVec") }}
+	assert.Equal(t, 1.0, *metricFamilies[0].Metric[0].Histogram.SampleSum)
+	{{ else if or (eq .MetricType "Summary") (eq .MetricType "SummaryVec") }}
+	assert.Equal(t, 1.0, *metricFamilies[0].Metric[0].Summary.SampleSum)
+    {{ end }}
+}
+
+func Test{{ .MetricType }}_Collector(t *testing.T) {
+    {{  toLower .MetricType }} := &{{ .MetricType }}{}
+	collector := {{  toLower .MetricType }}.Collector()
+
+	assert.NotNil(t, collector)
+	assert.IsType(t, &{{  toLower .MetricType }}Collector{}, collector)
+}

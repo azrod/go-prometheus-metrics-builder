@@ -3,9 +3,15 @@ package builder
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/azrod/go-prometheus-metrics-builder/types"
+)
+
+const (
+	// ignoreTag is used to ignore the field
+	ignoreTag = "_"
 )
 
 func BuildMetrics[T any](s T, prefixMetric string, racine bool) T {
@@ -34,12 +40,12 @@ func BuildMetrics[T any](s T, prefixMetric string, racine bool) T {
 		}
 	}
 
-	IterateStruct(t, v, prefixMetric)
+	IterateStruct(t, v, prefixMetric, []string{})
 
 	return s
 }
 
-func IterateStruct(t reflect.Type, v reflect.Value, prefixMetric string) {
+func IterateStruct(t reflect.Type, v reflect.Value, prefixMetric string, labels []string) {
 
 	// Iterate over the struct fields
 	for i := 0; i < t.NumField(); i++ {
@@ -76,21 +82,57 @@ func IterateStruct(t reflect.Type, v reflect.Value, prefixMetric string) {
 			// }
 			// new prefixMetric = "myApp_api_database" for API.DB.Get and API.DB.Set
 			var pm string
-			if field.Tag.Get("name") != "" {
-				pm = fmt.Sprintf("%s_%s", prefixMetric, strings.ToLower(field.Tag.Get("name")))
-			} else {
+
+			switch field.Tag.Get("name") {
+			case "":
 				pm = fmt.Sprintf("%s_%s", prefixMetric, strings.ToLower(field.Name))
+			case ignoreTag:
+				pm = prefixMetric
+			default:
+				pm = fmt.Sprintf("%s_%s", prefixMetric, strings.ToLower(field.Tag.Get("name")))
 			}
 
-			IterateStruct(field.Type, v.Field(i), pm)
+			// build the common labels
+			// example:
+			// type metric struct {
+			// 	API struct {
+			// 		DB struct {
+			// 			Get *types.CounterVec `help:"Demo counter" labels:"server,version"`
+			// 			Set *types.CounterVec `help:"Demo counter" labels:"server,version"`
+			// 		}
+			//  }
+			// }
+			// labels = []string{"server", "version"}
+			//
+			// special case if the struct have a tag labels defined in the struct field
+			// all labels are added to each metric
+			// example:
+			// type metric struct {
+			// 	API struct {
+			// 		DB struct {
+			// 			Get *types.CounterVec `help:"Demo counter"`
+			// 			Set *types.CounterVec `help:"Demo counter"`
+			// 		} `name:"database" labels:"server,version"`
+			//  }
+			//  }
+			// }
+			// labels = []string{"server", "version"}
+			var commonLabels []string
+			if field.Tag.Get("labels") != "" {
+				commonLabels = strings.Split(field.Tag.Get("labels"), ",")
+			}
+			// merge the common labels with the labels from the parent struct
+			labels = append(labels, commonLabels...)
+
+			IterateStruct(field.Type, v.Field(i), pm, labels)
 		case reflect.Ptr:
-			InitMetric(field, v.Field(i), prefixMetric)
+			InitMetric(field, v.Field(i), prefixMetric, labels)
 		}
 
 	}
 }
 
-func InitMetric(t reflect.StructField, v reflect.Value, prefixMetric string) {
+func InitMetric(t reflect.StructField, v reflect.Value, prefixMetric string, labels []string) {
 	mb := &types.Metric{
 		Name: func() string {
 			// If the name is not provided, use the field name
@@ -109,7 +151,13 @@ func InitMetric(t reflect.StructField, v reflect.Value, prefixMetric string) {
 		}(),
 		Namespace: t.Tag.Get("namespace"),
 		Subsystem: t.Tag.Get("subsystem"),
-		Labels:    strings.Split(t.Tag.Get("labels"), ","), // split string by comma
+		Labels: func() (l []string) {
+			l = labels
+			if t.Tag.Get("labels") != "" {
+				l = append(l, strings.Split(t.Tag.Get("labels"), ",")...) // split string by comma
+			}
+			return l
+		}(),
 	}
 
 	// initialize the metric base
@@ -119,5 +167,12 @@ func InitMetric(t reflect.StructField, v reflect.Value, prefixMetric string) {
 	if !ok {
 		panic(fmt.Sprintf("unsupported type %s", t.Type.String()))
 	}
+
+	// If the metric is a Vec, we need to check if the labels are provided
+	// If the metric is a Vec and the labels are not provided, we need to panic
+	if slices.Contains(types.MetricTypesVecStr, vv.GetType().String()) && len(mb.Labels) == 0 {
+		panic(fmt.Sprintf("labels are required for %s", mb.Name))
+	}
+
 	v.Set(reflect.ValueOf(vv.Init(mb)))
 }

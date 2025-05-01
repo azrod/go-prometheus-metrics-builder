@@ -1,11 +1,19 @@
 package types
 
-import "github.com/prometheus/client_golang/prometheus"
+import (
+	"github.com/azrod/go-prometheus-metrics-builder/pkg/registry"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
 
 type (
 	CounterVec struct {
 		Metric
 		*prometheus.CounterVec
+	}
+
+	counterVecCollector struct {
+		CounterVec
 	}
 )
 
@@ -15,22 +23,25 @@ var _ Initializable = &CounterVec{}
 // The metrics is automatically initialized by the Register function
 func (c *CounterVec) Init(mb *Metric) any {
 	c.Metric = *mb
-	c.CounterVec = prometheus.NewCounterVec(prometheus.CounterOpts(c.autoBuildOpts()), mb.Labels)
+	c.CounterVec = promauto.With(registry.PRegistry).NewCounterVec(prometheus.CounterOpts(c.autoBuildOpts()), mb.Labels)
 	return c
 }
 
 // Collector returns the prometheus collector
 func (c *CounterVec) Collector() Collector {
-	return c
+	return &counterVecCollector{
+		CounterVec: *c,
+	}
 }
 
 // GetType returns the metric type
 func (c *CounterVec) GetType() MetricType {
-	return TypeCounter
+	return TypeCounterVec
 }
 
 // Run runs the collector.
-func (c *CounterVec) SetValue(value float64, labels ...map[string]string) {
+func (c *counterVecCollector) SetValue(value float64, labels ...map[string]string) {
+
 	l := prometheus.Labels{}
 	bLabels := map[string]string{}
 	for _, label := range labels {
@@ -44,6 +55,5 @@ func (c *CounterVec) SetValue(value float64, labels ...map[string]string) {
 			l[label] = v
 		}
 	}
-
 	c.CounterVec.With(l).Add(value)
 }
