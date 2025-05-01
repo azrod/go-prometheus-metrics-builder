@@ -30,8 +30,8 @@ func (c *CounterVec) Init(mb *Metric) any {
 // Collector returns the prometheus collector
 func (c *CounterVec) Collector() Collector {
 	return &counterVecCollector{
-		CounterVec: *c,
-	}
+        CounterVec: *c,
+    }
 }
 
 // GetType returns the metric type
@@ -57,3 +57,4 @@ func (c *counterVecCollector) SetValue(value float64, labels ...map[string]strin
 	}
 	c.CounterVec.With(l).Add(value)
 }
+
