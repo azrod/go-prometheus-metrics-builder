@@ -54,6 +54,9 @@ func IterateStruct(t reflect.Type, v reflect.Value, prefixMetric string, labels 
 
 		switch field.Type.Kind() {
 		case reflect.Struct:
+			// Reset the labels for each struct
+			labels = []string{}
+
 			if field.Type.String() == "pmbuilder.InstanceInterface" {
 				continue
 			}
@@ -117,12 +120,9 @@ func IterateStruct(t reflect.Type, v reflect.Value, prefixMetric string, labels 
 			//  }
 			// }
 			// labels = []string{"server", "version"}
-			var commonLabels []string
 			if field.Tag.Get("labels") != "" {
-				commonLabels = strings.Split(field.Tag.Get("labels"), ",")
+				labels = append(labels, strings.Split(field.Tag.Get("labels"), ",")...)
 			}
-			// merge the common labels with the labels from the parent struct
-			labels = append(labels, commonLabels...)
 
 			IterateStruct(field.Type, v.Field(i), pm, labels)
 		case reflect.Ptr:
