@@ -1,3 +1,9 @@
+# v0.1.1 (2025-05-07)
+
+🐛 Bug
+
+* Fixed a bug where the labels were not being correctly reset for each struct.
+
 # v0.1.0 (2025-05-01)
 
 🚀 New Features Added!
