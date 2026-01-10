@@ -1,3 +1,9 @@
+# Unreleased
+
+### Fixed
+
+* Fix Gauge SetValue semantics: SetValue now uses Set for Gauge and GaugeVec to set absolute values; added AddValue methods to preserve increment behavior; added unit tests verifying Set and Add behaviors for gauges and gauge vectors.
+
 # v0.1.1 (2025-05-07)
 
 🐛 Bug
