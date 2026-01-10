@@ -1,5 +1,9 @@
 # Unreleased
 
+### Breaking Changes
+
+* SetValue for Gauge and GaugeVec now sets absolute values (uses Set). Previously SetValue incremented the metric (used Add). This is a breaking change: callers that relied on the previous increment behavior must replace calls to SetValue with AddValue (or use Inc/Add) to retain incrementing behavior.
+
 ### Fixed
 
 * Fix Gauge SetValue semantics: SetValue now uses Set for Gauge and GaugeVec to set absolute values; added AddValue methods to preserve increment behavior; added unit tests verifying Set and Add behaviors for gauges and gauge vectors.
