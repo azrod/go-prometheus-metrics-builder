@@ -41,6 +41,11 @@ func (c *Gauge) GetType() MetricType {
 
 // Run runs the collector.
 func (c *gaugeCollector) SetValue(value float64, _ ...map[string]string) {
+	c.Gauge.Set(value)
+}
+
+// AddValue increments the gauge by the provided value.
+func (c *gaugeCollector) AddValue(value float64, _ ...map[string]string) {
 	c.Gauge.Add(value)
 }
 

@@ -55,3 +55,24 @@ func TestGauge_SetValue(t *testing.T) {
 	assert.Equal(t, 1.0, *metricFamilies[0].Metric[0].Gauge.Value)
     
 }
+
+func TestGauge_SetAndAdd(t *testing.T) {
+	registry.PRegistry = prometheus.NewRegistry()
+	gauge := &Gauge{}
+	mb := &Metric{
+		Name: "test_gauge_set_add",
+		Help: "This is a test gauge set and add",
+	}
+	gauge.Init(mb)
+
+	collector := gauge.Collector().(*gaugeCollector)
+	collector.SetValue(5)
+
+	metricFamilies, _ := registry.PRegistry.Gather()
+	assert.Equal(t, 5.0, *metricFamilies[0].Metric[0].Gauge.Value)
+
+	collector.AddValue(2)
+
+	metricFamilies, _ = registry.PRegistry.Gather()
+	assert.Equal(t, 7.0, *metricFamilies[0].Metric[0].Gauge.Value)
+}

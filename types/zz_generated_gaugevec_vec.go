@@ -55,6 +55,24 @@ func (c *gaugeVecCollector) SetValue(value float64, labels ...map[string]string)
 			l[label] = v
 		}
 	}
+	c.GaugeVec.With(l).Set(value)
+}
+
+// AddValue increments the gauge vector for the provided label set.
+func (c *gaugeVecCollector) AddValue(value float64, labels ...map[string]string) {
+	l := prometheus.Labels{}
+	bLabels := map[string]string{}
+	for _, label := range labels {
+		for k, v := range label {
+			bLabels[k] = v
+		}
+	}
+
+	for _, label := range c.Labels {
+		if v, ok := bLabels[label]; ok {
+			l[label] = v
+		}
+	}
 	c.GaugeVec.With(l).Add(value)
 }
 

@@ -54,6 +54,33 @@ func TestGaugeVecCollector_SetValue(t *testing.T) {
     
 }
 
+func TestGaugeVec_SetAndAdd(t *testing.T) {
+	registry.PRegistry = prometheus.NewRegistry()
+	gaugeVec := &GaugeVec{}
+	mb := &Metric{
+		Name: "test_gaugeVec_set_add",
+		Help: "This is a test gaugeVec set and add",
+		Labels: []string{"label1", "label2"},
+	}
+	gaugeVec.Init(mb)
+
+	labels := map[string]string{
+		"label1": "value1",
+		"label2": "value2",
+	}
+
+	collector := gaugeVec.Collector().(*gaugeVecCollector)
+	collector.SetValue(5, labels)
+
+	metricFamilies, _ := registry.PRegistry.Gather()
+	assert.Equal(t, 5.0, *metricFamilies[0].Metric[0].Gauge.Value)
+
+	collector.AddValue(2, labels)
+
+	metricFamilies, _ = registry.PRegistry.Gather()
+	assert.Equal(t, 7.0, *metricFamilies[0].Metric[0].Gauge.Value)
+}
+
 func TestGaugeVec_Collector(t *testing.T) {
     gaugeVec := &GaugeVec{}
 	collector := gaugeVec.Collector()
